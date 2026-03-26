@@ -50,14 +50,25 @@ runs:
 
           sudo mkdir -p "${INSTALL_DIR}"
           sudo unzip -qo "${TMP_DIR}/instantclient.zip" -d "${INSTALL_DIR}"
-          sudo ln -sf "${INSTALL_DIR}"/instantclient_*/ "${INSTALL_DIR}/instantclient"
           rm -rf "${TMP_DIR}"
+
+          # Find the extracted directory and create a stable symlink
+          IC_DIR=$(find "${INSTALL_DIR}" -maxdepth 1 -type d -name 'instantclient_*' | head -1)
+          if [[ -z "${IC_DIR}" ]]; then
+            echo "::error::Failed to find extracted instantclient directory in ${INSTALL_DIR}"
+            exit 1
+          fi
+          sudo ln -sfn "${IC_DIR}" "${INSTALL_DIR}/instantclient"
         else
           echo "Oracle Instant Client ${VERSION} already cached"
         fi
 
         # Resolve library path
         LIB_PATH=$(readlink -f "${INSTALL_DIR}/instantclient")
+        if [[ -z "${LIB_PATH}" || ! -d "${LIB_PATH}" ]]; then
+          echo "::error::Failed to resolve Oracle Instant Client path at ${INSTALL_DIR}/instantclient"
+          exit 1
+        fi
         echo "Oracle Instant Client: ${LIB_PATH}"
         echo "oracle-home=${LIB_PATH}" >> "$GITHUB_OUTPUT"
 

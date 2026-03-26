@@ -38,12 +38,15 @@ runs:
           exit 1
         fi
 
+        # Use sudo when not root
+        SUDO=$(command -v sudo || true)
+
         # Install dependencies
         if command -v apt-get &> /dev/null; then
-          sudo apt-get -qq update > /dev/null
-          sudo apt-get -qq install -y libaio1 2>/dev/null || sudo apt-get -qq install -y libaio1t64 > /dev/null
+          $SUDO apt-get -qq update > /dev/null
+          $SUDO apt-get -qq install -y libaio1 2>/dev/null || $SUDO apt-get -qq install -y libaio1t64 > /dev/null
         elif command -v yum &> /dev/null; then
-          sudo yum install -y -q curl unzip libaio
+          $SUDO yum install -y -q curl unzip libaio
         else
           echo "::warning::Unknown package manager. Ensure curl, unzip, and libaio are installed."
         fi
@@ -69,10 +72,10 @@ runs:
             fi
           fi
 
-          sudo mkdir -p "${INSTALL_DIR}"
-          sudo unzip -qo "${TMP_DIR}/instantclient.zip" -d "${INSTALL_DIR}"
+          $SUDO mkdir -p "${INSTALL_DIR}"
+          $SUDO unzip -qo "${TMP_DIR}/instantclient.zip" -d "${INSTALL_DIR}"
           rm -rf "${TMP_DIR}"
-          sudo ln -sfn "${INSTALL_DIR}"/instantclient_* "${INSTALL_DIR}/instantclient"
+          $SUDO ln -sfn "${INSTALL_DIR}"/instantclient_* "${INSTALL_DIR}/instantclient"
         else
           echo "Oracle Instant Client ${VERSION} already cached"
         fi

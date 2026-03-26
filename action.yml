@@ -40,7 +40,8 @@ runs:
 
         # Install dependencies
         sudo apt-get -qq update > /dev/null
-        sudo apt-get -qq install -y libaio1 2>/dev/null || sudo apt-get -qq install -y libaio1t64 > /dev/null
+        sudo apt-get -qq install -y libaio1 || sudo apt-get -qq install -y libaio1t64
+        ldconfig -p | grep libaio || echo "::warning::libaio not found in ldconfig"
 
         INSTALL_DIR="${RUNNER_TOOL_CACHE}/oracle-instantclient/${VERSION}"
 

@@ -65,12 +65,7 @@ The action sets the following environment variables:
 
 ## Platform
 
-Linux runners only. Supported distributions:
-
-- **Ubuntu/Debian** (apt-get)
-- **RHEL/CentOS/Fedora/Amazon Linux** (yum)
-
-For other distributions, ensure `curl`, `unzip`, and `libaio` are installed.
+Ubuntu runners only (`ubuntu-latest`). For self-hosted runners, ensure `curl`, `unzip`, and `libaio` are installed.
 
 ## License
 

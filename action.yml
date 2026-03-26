@@ -23,7 +23,7 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Download and install Oracle Instant Client
+    - name: Setup Oracle Instant Client
       id: setup
       shell: bash
       env:
@@ -34,45 +34,34 @@ runs:
 
         INSTALL_DIR="${RUNNER_TOOL_CACHE}/oracle-instantclient/${VERSION}"
 
-        if [[ -d "${INSTALL_DIR}/instantclient" ]]; then
-          echo "Oracle Instant Client ${VERSION} already installed"
-          ORACLE_HOME=$(readlink -f "${INSTALL_DIR}/instantclient")
-          echo "oracle-home=${ORACLE_HOME}" >> "$GITHUB_OUTPUT"
-          exit 0
+        # Download if not cached
+        if [[ ! -d "${INSTALL_DIR}/instantclient" ]]; then
+          ARCH=$([ "$(uname -m)" = "x86_64" ] && echo "x64" || echo "arm64")
+          PATH_SEGMENT=$(echo "${VERSION}" | tr -d '.')
+          BASE_URL="https://download.oracle.com/otn_software/linux/instantclient/${PATH_SEGMENT}"
+
+          echo "Downloading Oracle Instant Client ${VERSION} (${VARIANT}) for ${ARCH}..."
+          TMP_DIR=$(mktemp -d)
+          URL="${BASE_URL}/instantclient-${VARIANT}-linux.${ARCH}-${VERSION}dbru.zip"
+          if ! curl -fsSL -o "${TMP_DIR}/instantclient.zip" "${URL}" 2>/dev/null; then
+            URL="${BASE_URL}/instantclient-${VARIANT}-linux.${ARCH}-${VERSION}.zip"
+            curl -fsSL -o "${TMP_DIR}/instantclient.zip" "${URL}"
+          fi
+
+          sudo mkdir -p "${INSTALL_DIR}"
+          sudo unzip -qo "${TMP_DIR}/instantclient.zip" -d "${INSTALL_DIR}"
+          sudo ln -sf "${INSTALL_DIR}"/instantclient_*/ "${INSTALL_DIR}/instantclient"
+          rm -rf "${TMP_DIR}"
+        else
+          echo "Oracle Instant Client ${VERSION} already cached"
         fi
 
-        # Map architecture
-        ARCH=$([ "$(uname -m)" = "x86_64" ] && echo "x64" || echo "arm64")
+        # Resolve library path
+        LIB_PATH=$(readlink -f "${INSTALL_DIR}/instantclient")
+        echo "Oracle Instant Client: ${LIB_PATH}"
+        echo "oracle-home=${LIB_PATH}" >> "$GITHUB_OUTPUT"
 
-        # Build download path segment: 19.30.0.0.0 -> 1930000
-        PATH_SEGMENT=$(echo "${VERSION}" | tr -d '.')
-
-        BASE_URL="https://download.oracle.com/otn_software/linux/instantclient/${PATH_SEGMENT}"
-
-        # Download (try with dbru suffix first, then without)
-        echo "Downloading Oracle Instant Client ${VERSION} (${VARIANT}) for ${ARCH}..."
-        TMP_DIR=$(mktemp -d)
-        URL="${BASE_URL}/instantclient-${VARIANT}-linux.${ARCH}-${VERSION}dbru.zip"
-        if ! curl -fsSL -o "${TMP_DIR}/instantclient.zip" "${URL}" 2>/dev/null; then
-          URL="${BASE_URL}/instantclient-${VARIANT}-linux.${ARCH}-${VERSION}.zip"
-          curl -fsSL -o "${TMP_DIR}/instantclient.zip" "${URL}"
-        fi
-
-        # Install
-        sudo mkdir -p "${INSTALL_DIR}"
-        sudo unzip -qo "${TMP_DIR}/instantclient.zip" -d "${INSTALL_DIR}"
-        sudo ln -sf "${INSTALL_DIR}"/instantclient_*/ "${INSTALL_DIR}/instantclient"
-        rm -rf "${TMP_DIR}"
-
-        ORACLE_HOME=$(readlink -f "${INSTALL_DIR}/instantclient")
-        echo "Installed to: ${ORACLE_HOME}"
-        echo "oracle-home=${ORACLE_HOME}" >> "$GITHUB_OUTPUT"
-
-    - name: Configure environment
-      shell: bash
-      env:
-        ORACLE_HOME: ${{ steps.setup.outputs.oracle-home }}
-      run: |
-        echo "LD_LIBRARY_PATH=${ORACLE_HOME}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
-        echo "${ORACLE_HOME}" | sudo tee /etc/ld.so.conf.d/oracle-instantclient.conf
+        # Configure shared library path
+        echo "LD_LIBRARY_PATH=${LIB_PATH}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
+        echo "${LIB_PATH}" | sudo tee /etc/ld.so.conf.d/oracle-instantclient.conf
         sudo ldconfig

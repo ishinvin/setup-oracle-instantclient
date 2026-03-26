@@ -56,14 +56,6 @@ steps:
 
 > ARM64 runners are only supported for version 23 or later.
 
-## Environment Variables
-
-The action sets the following environment variables:
-
-- `ORACLE_HOME` - Oracle Instant Client installation path
-- `LD_LIBRARY_PATH` - Includes Instant Client libraries
-- Adds Instant Client directory to `PATH`
-
 ## Platform
 
 Linux runners only (Ubuntu). For self-hosted runners, ensure `curl` and `unzip` are installed.

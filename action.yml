@@ -69,10 +69,9 @@ runs:
           echo "Oracle Instant Client ${VERSION} already cached"
         fi
 
-        ORACLE_HOME=$(readlink -f "${INSTALL_DIR}/instantclient")
-        echo "Oracle Instant Client: ${ORACLE_HOME}"
-        echo "oracle-home=${ORACLE_HOME}" >> "$GITHUB_OUTPUT"
+        IC_PATH=$(readlink -f "${INSTALL_DIR}/instantclient")
+        echo "Oracle Instant Client: ${IC_PATH}"
+        echo "oracle-home=${IC_PATH}" >> "$GITHUB_OUTPUT"
 
-        # Configure environment
-        echo "ORACLE_HOME=${ORACLE_HOME}" >> "$GITHUB_ENV"
-        echo "LD_LIBRARY_PATH=${ORACLE_HOME}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
+        # Configure environment (do not set ORACLE_HOME — Instant Client uses LD_LIBRARY_PATH)
+        echo "LD_LIBRARY_PATH=${IC_PATH}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" >> "$GITHUB_ENV"

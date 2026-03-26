@@ -60,7 +60,6 @@ steps:
 
 The action sets the following environment variables:
 
-- `ORACLE_HOME` - Oracle Instant Client installation path
 - `LD_LIBRARY_PATH` - Includes Instant Client libraries
 
 ## Platform

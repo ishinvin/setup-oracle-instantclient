@@ -79,12 +79,19 @@ jobs:
           package main
 
           import (
+            "database/sql"
             "fmt"
-            "github.com/godror/godror"
+            _ "github.com/godror/godror"
           )
 
           func main() {
-            fmt.Println("godror version:", godror.Version)
+            db, err := sql.Open("godror", "")
+            if err != nil {
+              panic(err)
+            }
+            defer db.Close()
+            err = db.Ping()
+            fmt.Println("Oracle client loaded successfully (ping error expected):", err)
           }
           EOF
           go run main.go

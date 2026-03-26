@@ -73,8 +73,6 @@ runs:
       env:
         ORACLE_HOME: ${{ steps.setup.outputs.oracle-home }}
       run: |
-        echo "ORACLE_HOME=${ORACLE_HOME}" >> "$GITHUB_ENV"
         echo "LD_LIBRARY_PATH=${ORACLE_HOME}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
-        echo "${ORACLE_HOME}" >> "$GITHUB_PATH"
         echo "${ORACLE_HOME}" | sudo tee /etc/ld.so.conf.d/oracle-instantclient.conf
         sudo ldconfig

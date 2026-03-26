@@ -1,0 +1,58 @@
+name: Test Action
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-default:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Oracle Instant Client (default)
+        id: oracle
+        uses: ./
+        with:
+          version: "19.30.0.0.0"
+
+      - name: Verify installation
+        run: |
+          echo "ORACLE_HOME=${ORACLE_HOME}"
+          echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
+          echo "Output oracle-home=${{ steps.oracle.outputs.oracle-home }}"
+          ls -la "${ORACLE_HOME}"
+
+  test-basic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Oracle Instant Client (basic)
+        uses: ./
+        with:
+          version: "19.30.0.0.0"
+          variant: "basic"
+
+      - name: Verify installation
+        run: |
+          echo "ORACLE_HOME=${ORACLE_HOME}"
+          ls -la "${ORACLE_HOME}"
+
+  test-v23:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Oracle Instant Client (v23)
+        uses: ./
+        with:
+          version: "23.26.1.0.0"
+
+      - name: Verify installation
+        run: |
+          echo "ORACLE_HOME=${ORACLE_HOME}"
+          ls -la "${ORACLE_HOME}"

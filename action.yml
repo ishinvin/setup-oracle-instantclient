@@ -32,7 +32,25 @@ runs:
       run: |
         set -euo pipefail
 
-        INSTALL_DIR="${RUNNER_TOOL_CACHE}/oracle-instantclient/${VERSION}"
+        # Validate inputs
+        if [[ "${VARIANT}" != "basic" && "${VARIANT}" != "basiclite" ]]; then
+          echo "::error::Invalid variant '${VARIANT}'. Must be 'basic' or 'basiclite'."
+          exit 1
+        fi
+
+        # Install dependencies
+        if command -v apt-get &> /dev/null; then
+          sudo apt-get -qq update > /dev/null
+          sudo apt-get -qq install -y libaio1 2>/dev/null || sudo apt-get -qq install -y libaio1t64 > /dev/null
+        elif command -v yum &> /dev/null; then
+          sudo yum install -y -q curl unzip libaio
+        else
+          echo "::warning::Unknown package manager. Ensure curl, unzip, and libaio are installed."
+        fi
+        curl --version 2>/dev/null || echo "curl: not found"
+        unzip -v 2>/dev/null || echo "unzip: not found"
+
+        INSTALL_DIR="${RUNNER_TOOL_CACHE:-/tmp}/oracle-instantclient/${VERSION}"
 
         # Download if not cached
         if [[ ! -d "${INSTALL_DIR}/instantclient" ]]; then
@@ -40,39 +58,29 @@ runs:
           PATH_SEGMENT=$(echo "${VERSION}" | tr -d '.')
           BASE_URL="https://download.oracle.com/otn_software/linux/instantclient/${PATH_SEGMENT}"
 
-          echo "Downloading Oracle Instant Client ${VERSION} (${VARIANT}) for ${ARCH}..."
           TMP_DIR=$(mktemp -d)
           URL="${BASE_URL}/instantclient-${VARIANT}-linux.${ARCH}-${VERSION}dbru.zip"
+          echo "Downloading Oracle Instant Client ${VERSION} (${VARIANT}) for ${ARCH}..."
           if ! curl -fsSL -o "${TMP_DIR}/instantclient.zip" "${URL}" 2>/dev/null; then
             URL="${BASE_URL}/instantclient-${VARIANT}-linux.${ARCH}-${VERSION}.zip"
-            curl -fsSL -o "${TMP_DIR}/instantclient.zip" "${URL}"
+            if ! curl -fsSL -o "${TMP_DIR}/instantclient.zip" "${URL}"; then
+              echo "::error::Failed to download Oracle Instant Client ${VERSION} (${VARIANT}) for ${ARCH}. Check version and architecture."
+              exit 1
+            fi
           fi
 
           sudo mkdir -p "${INSTALL_DIR}"
           sudo unzip -qo "${TMP_DIR}/instantclient.zip" -d "${INSTALL_DIR}"
           rm -rf "${TMP_DIR}"
-
-          # Find the extracted directory and create a stable symlink
-          IC_DIR=$(find "${INSTALL_DIR}" -maxdepth 1 -type d -name 'instantclient_*' | head -1)
-          if [[ -z "${IC_DIR}" ]]; then
-            echo "::error::Failed to find extracted instantclient directory in ${INSTALL_DIR}"
-            exit 1
-          fi
-          sudo ln -sfn "${IC_DIR}" "${INSTALL_DIR}/instantclient"
+          sudo ln -sfn "${INSTALL_DIR}"/instantclient_* "${INSTALL_DIR}/instantclient"
         else
           echo "Oracle Instant Client ${VERSION} already cached"
         fi
 
-        # Resolve library path
-        LIB_PATH=$(readlink -f "${INSTALL_DIR}/instantclient")
-        if [[ -z "${LIB_PATH}" || ! -d "${LIB_PATH}" ]]; then
-          echo "::error::Failed to resolve Oracle Instant Client path at ${INSTALL_DIR}/instantclient"
-          exit 1
-        fi
-        echo "Oracle Instant Client: ${LIB_PATH}"
-        echo "oracle-home=${LIB_PATH}" >> "$GITHUB_OUTPUT"
+        ORACLE_HOME=$(readlink -f "${INSTALL_DIR}/instantclient")
+        echo "Oracle Instant Client: ${ORACLE_HOME}"
+        echo "oracle-home=${ORACLE_HOME}" >> "$GITHUB_OUTPUT"
 
-        # Configure shared library path
-        echo "LD_LIBRARY_PATH=${LIB_PATH}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
-        echo "${LIB_PATH}" | sudo tee /etc/ld.so.conf.d/oracle-instantclient.conf
-        sudo ldconfig
+        # Configure environment
+        echo "ORACLE_HOME=${ORACLE_HOME}" >> "$GITHUB_ENV"
+        echo "LD_LIBRARY_PATH=${ORACLE_HOME}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" >> "$GITHUB_ENV"

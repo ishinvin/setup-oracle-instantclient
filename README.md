@@ -35,10 +35,11 @@ steps:
 
 ## Inputs
 
-| Input     | Description                             | Required | Default     |
-| --------- | --------------------------------------- | -------- | ----------- |
-| `version` | Oracle Instant Client version           | Yes      |             |
-| `variant` | Package variant: `basic` or `basiclite` | No       | `basiclite` |
+| Input     | Description                                                       | Required | Default     |
+| --------- | ----------------------------------------------------------------- | -------- | ----------- |
+| `version` | Oracle Instant Client version                                     | Yes      |             |
+| `variant` | Package variant: `basic` or `basiclite`                           | No       | `basiclite` |
+| `force`   | Force reinstall dependencies and redownload Oracle Instant Client | No       | `false`     |
 
 ## Outputs
 
